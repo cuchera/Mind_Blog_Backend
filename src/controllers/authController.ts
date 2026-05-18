@@ -1,3 +1,5 @@
+// Responsável pelo cadastro e login de usuários.
+
 import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
@@ -12,6 +14,7 @@ export async function register(req: Request, res: Response): Promise<void> {
   }
 
   try {
+    // Verifica se já existe um usuário com esse email
     const [existing] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
     if ((existing as any[]).length > 0) {
       res.status(409).json({ message: 'Email já cadastrado.' });
@@ -19,6 +22,7 @@ export async function register(req: Request, res: Response): Promise<void> {
     }
 
     const hash = await bcrypt.hash(password, 12);
+    // Insere o usuário no banco com a senha já criptografada
     const [result] = await pool.query(
       'INSERT INTO users (name, email, password) VALUES (?, ?, ?)',
       [name, email, hash]
@@ -34,12 +38,14 @@ export async function register(req: Request, res: Response): Promise<void> {
 export async function login(req: Request, res: Response): Promise<void> {
   const { email, password } = req.body;
 
+  // Valida se os campos foram enviados
   if (!email || !password) {
     res.status(400).json({ message: 'Email e senha são obrigatórios.' });
     return;
   }
 
   try {
+     // Busca o usuário pelo email
     const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
     const users = rows as any[];
 
@@ -49,6 +55,7 @@ export async function login(req: Request, res: Response): Promise<void> {
     }
 
     const user = users[0];
+    // Compara a senha enviada com o hash armazenado no banco
     const match = await bcrypt.compare(password, user.password);
 
     if (!match) {
@@ -57,7 +64,7 @@ export async function login(req: Request, res: Response): Promise<void> {
     }
 
     const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET as string, {
-      expiresIn: '7d',
+      expiresIn: '7d', // Token válido por 7 dias
     });
 
     res.json({

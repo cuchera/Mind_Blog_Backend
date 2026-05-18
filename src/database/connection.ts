@@ -1,6 +1,8 @@
+// Módulo responsável por criar e exportar o pool de conexões com o banco de dados MySQL.
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
 
+// Carrega as variáveis de ambiente do arquivo .env
 dotenv.config();
 
 const pool = mysql.createPool({

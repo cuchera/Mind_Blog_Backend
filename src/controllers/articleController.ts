@@ -1,3 +1,5 @@
+// Gerencia todas as operações do CRUD
+
 import { Request, Response } from 'express';
 import pool from '../database/connection';
 import fs from 'fs';
@@ -17,6 +19,7 @@ export async function listArticles(req: Request, res: Response): Promise<void> {
   }
 }
 
+// pesquisa artigo específico pelo ID.
 export async function getArticle(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
   try {
@@ -39,6 +42,7 @@ export async function getArticle(req: Request, res: Response): Promise<void> {
   }
 }
 
+// Cria um novo artigo vinculado ao usuário autenticado.
 export async function createArticle(req: Request, res: Response): Promise<void> {
   const { title, content } = req.body;
   const userId = req.userId;
@@ -58,6 +62,7 @@ export async function createArticle(req: Request, res: Response): Promise<void> 
       fs.unlinkSync(req.file.path); // remove arquivo temporário
     }
 
+    // Insere o artigo no banco
     const [result] = await pool.query(
       'INSERT INTO articles (user_id, title, content, banner, banner_mime) VALUES (?, ?, ?, ?, ?)',
       [userId, title, content, banner, bannerMime]
@@ -69,12 +74,14 @@ export async function createArticle(req: Request, res: Response): Promise<void> 
   }
 }
 
+//Atualiza título, conteúdo e opcionalmente o banner de um artigo em caso de o usario ser o autor.
 export async function updateArticle(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
   const { title, content } = req.body;
   const userId = req.userId;
 
   try {
+    // Busca o artigo para verificar se existe e quem é o autor
     const [rows] = await pool.query('SELECT user_id FROM articles WHERE id = ?', [id]);
     const articles = rows as any[];
 
@@ -82,6 +89,7 @@ export async function updateArticle(req: Request, res: Response): Promise<void> 
       res.status(404).json({ message: 'Artigo não encontrado.' });
       return;
     }
+    // Apenas o autor pode editar o próprio artigo
     if (articles[0].user_id !== userId) {
       res.status(403).json({ message: 'Você não tem permissão para editar este artigo.' });
       return;
@@ -110,11 +118,13 @@ export async function updateArticle(req: Request, res: Response): Promise<void> 
   }
 }
 
+//Remoção de Artigo em caso de o usario ser o autor.
 export async function deleteArticle(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
   const userId = req.userId;
 
   try {
+    // Busca o artigo para verificar se existe e quem é o autor
     const [rows] = await pool.query('SELECT user_id FROM articles WHERE id = ?', [id]);
     const articles = rows as any[];
 
@@ -122,6 +132,7 @@ export async function deleteArticle(req: Request, res: Response): Promise<void> 
       res.status(404).json({ message: 'Artigo não encontrado.' });
       return;
     }
+     // Apenas o autor pode deletar o próprio artigo
     if (articles[0].user_id !== userId) {
       res.status(403).json({ message: 'Você não tem permissão para deletar este artigo.' });
       return;
@@ -134,6 +145,7 @@ export async function deleteArticle(req: Request, res: Response): Promise<void> 
   }
 }
 
+// Retorna a imagem banner de um artigo diretamente como resposta binária.
 export async function getBanner(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
   try {
@@ -145,6 +157,7 @@ export async function getBanner(req: Request, res: Response): Promise<void> {
       return;
     }
 
+    // Define o Content-Type correto para o navegador renderizar a imagem
     res.setHeader('Content-Type', articles[0].banner_mime);
     res.send(articles[0].banner);
   } catch {
